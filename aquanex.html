@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AQUANEX – Smart River Monitoring Dashboard</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+
+/* ================= BODY ================= */
+body{
+    margin:0;
+    font-family:'Segoe UI',sans-serif;
+    background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+    color:white;
+    text-align:center;
+    overflow-x:hidden;
+}
+
+/* ================= HEADER ================= */
+header{
+    background:linear-gradient(90deg,#001f3f,#003366,#001f3f);
+    padding:18px;
+    font-size:24px;
+    font-weight:bold;
+    letter-spacing:1px;
+    box-shadow:0 0 15px rgba(0,200,255,0.4);
+    animation:headerGlow 4s infinite alternate;
+}
+
+@keyframes headerGlow{
+    from{box-shadow:0 0 10px rgba(0,200,255,0.3);}
+    to{box-shadow:0 0 25px rgba(0,200,255,0.7);}
+}
+
+/* ================= PAGE FADE ================= */
+.page{display:none; animation:fade 0.4s ease;}
+.active{display:block;}
+
+@keyframes fade{
+    from{opacity:0; transform:translateY(8px);}
+    to{opacity:1; transform:translateY(0);}
+}
+
+/* ================= CONTAINER ================= */
+.container{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    padding:20px;
+}
+
+/* ================= STATION CARD ================= */
+.station{
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(10px);
+    width:320px;
+    padding:22px;
+    margin:15px;
+    border-radius:18px;
+    box-shadow:0 0 15px rgba(0,0,0,0.4);
+    transition:0.3s;
+}
+
+.station:hover{
+    transform:translateY(-6px) scale(1.02);
+    box-shadow:0 10px 25px rgba(0,200,255,0.3);
+}
+
+/* ================= BUTTON ================= */
+button{
+    padding:11px 20px;
+    border:none;
+    border-radius:25px;
+    background:linear-gradient(90deg,#00c6ff,#0072ff);
+    color:white;
+    cursor:pointer;
+    margin:8px;
+    font-weight:500;
+    transition:0.25s;
+    position:relative;
+    overflow:hidden;
+}
+
+button:hover{
+    transform:scale(1.05);
+    box-shadow:0 0 12px rgba(0,200,255,0.7);
+}
+
+/* Ripple Effect */
+button::after{
+    content:"";
+    position:absolute;
+    width:0;
+    height:0;
+    background:rgba(255,255,255,0.4);
+    border-radius:50%;
+    transform:translate(-50%,-50%);
+    left:50%;
+    top:50%;
+    transition:0.4s;
+}
+button:active::after{
+    width:200px;
+    height:200px;
+}
+
+/* BACK BUTTON */
+.back{
+    position:absolute;
+    left:20px;
+    top:85px;
+    background:linear-gradient(90deg,#ff512f,#dd2476);
+}
+
+/* ================= MAP ================= */
+.map{
+    height:180px;
+    margin-top:12px;
+    border-radius:12px;
+    overflow:hidden;
+}
+
+/* ================= TABLE ================= */
+table{
+    width:95%;
+    margin:25px auto;
+    border-collapse:collapse;
+    background:rgba(255,255,255,0.95);
+    color:black;
+    border-radius:10px;
+    overflow:hidden;
+}
+
+th{
+    background:linear-gradient(90deg,#1877f2,#00c6ff);
+    color:white;
+}
+
+th,td{
+    padding:13px;
+}
+
+tbody tr{
+    transition:0.2s;
+}
+
+tbody tr:hover{
+    background:#e8f6ff;
+}
+
+/* ================= GALLERY ================= */
+.gallery{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:25px;
+    padding:30px;
+}
+
+.gallery-item{
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 0 15px rgba(0,0,0,0.4);
+    transition:0.3s;
+}
+
+.gallery-item:hover{
+    transform:scale(1.04);
+}
+
+.gallery-item img{
+    width:100%;
+    height:180px;
+    object-fit:cover;
+}
+
+.caption{
+    padding:10px;
+    background:#111;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>🇮🇳 AQUANEX – Smart River Monitoring Dashboard</header>
+
+<!-- ================= STATIONS ================= -->
+<div id="stationsPage" class="page active">
+
+<h2>River Monitoring Stations</h2>
+<button onclick="openDatabase()">🗄 Flood Database (India)</button>
+
+<div class="container">
+
+<div class="station">
+<h3>🌊 Station 1</h3>
+<div id="status1">Location: Not Available</div>
+<button onclick="getLocation(1)">📍 Get Geo Location</button>
+<button onclick="openMonitor(1)">📊 Monitor</button>
+<div id="map1" class="map"></div>
+</div>
+
+<div class="station">
+<h3>🌊 Station 2</h3>
+<div id="status2">Location: Not Available</div>
+<button onclick="getLocation(2)">📍 Get Geo Location</button>
+<button onclick="openMonitor(2)">📊 Monitor</button>
+<div id="map2" class="map"></div>
+</div>
+
+<div class="station">
+<h3>🌊 Station 3</h3>
+<div id="status3">Location: Not Available</div>
+<button onclick="getLocation(3)">📍 Get Geo Location</button>
+<button onclick="openMonitor(3)">📊 Monitor</button>
+<div id="map3" class="map"></div>
+</div>
+
+</div>
+</div>
+
+<!-- ================= MONITOR ================= -->
+<div id="monitorPage" class="page">
+<button class="back" onclick="goBack()">⬅ Back</button>
+<h2 id="stationTitle">Station Monitor</h2>
+<button>🌧 Flood Monitor</button>
+<button>🌊 Water Level</button>
+<button>💧 Velocity</button>
+<button>📊 Past Data</button>
+</div>
+
+<!-- ================= DATABASE ================= -->
+<div id="databasePage" class="page">
+<button class="back" onclick="goBackToStations()">⬅ Back</button>
+
+<h2>🇮🇳 India Flood Database</h2>
+
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>River</th>
+<th>Location</th>
+<th>Station</th>
+<th>Danger</th>
+<th>Current</th>
+<th>Forecast</th>
+<th>Damage</th>
+</tr>
+</thead>
+<tbody id="dbTable"></tbody>
+</table>
+
+<h2>📷 Major Flood Events in India</h2>
+
+<div class="gallery">
+<div class="gallery-item">
+<img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Kerala_Floods_2018.jpg">
+<div class="caption">Kerala Floods (2018)</div>
+</div>
+
+<div class="gallery-item">
+<img src="https://upload.wikimedia.org/wikipedia/commons/0/0e/Assam_Flood_2022.jpg">
+<div class="caption">Assam Floods (2022)</div>
+</div>
+
+<div class="gallery-item">
+<img src="https://upload.wikimedia.org/wikipedia/commons/4/4f/Bihar_Flood_2017.jpg">
+<div class="caption">Bihar Floods (2017)</div>
+</div>
+
+<div class="gallery-item">
+<img src="https://upload.wikimedia.org/wikipedia/commons/9/9e/Chennai_Floods_2015.jpg">
+<div class="caption">Chennai Floods (2015)</div>
+</div>
+</div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+/* PAGE SWITCH */
+function openMonitor(station){
+document.getElementById("stationsPage").classList.remove("active");
+document.getElementById("monitorPage").classList.add("active");
+document.getElementById("stationTitle").innerText="🌊 Station "+station+" Monitoring Panel";
+}
+
+function goBack(){
+document.getElementById("monitorPage").classList.remove("active");
+document.getElementById("stationsPage").classList.add("active");
+}
+
+function openDatabase(){
+document.getElementById("stationsPage").classList.remove("active");
+document.getElementById("databasePage").classList.add("active");
+setTimeout(loadFloodData,150);
+}
+
+function goBackToStations(){
+document.getElementById("databasePage").classList.remove("active");
+document.getElementById("stationsPage").classList.add("active");
+}
+
+/* MAP + GEO */
+let maps={};
+
+function getLocation(station){
+navigator.geolocation.getCurrentPosition(function(pos){
+let lat=pos.coords.latitude;
+let lon=pos.coords.longitude;
+document.getElementById("status"+station).innerHTML=
+"Lat:"+lat.toFixed(4)+"<br>Lon:"+lon.toFixed(4);
+loadMap(station,lat,lon);
+},()=>alert("Location access denied"));
+}
+
+function loadMap(id,lat,lon){
+if(maps[id]) maps[id].remove();
+let map=L.map("map"+id).setView([lat,lon],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+L.marker([lat,lon]).addTo(map);
+maps[id]=map;
+}
+
+/* FLOOD DATA */
+function loadFloodData(){
+
+let data=[
+
+/* ===== REAL-TIME STYLE STATION DATA ===== */
+
+{date:"12-08-2025",river:"Krishna",loc:"Vijayawada, Andhra Pradesh",station:"Prakasam Barrage",danger:53,current:55,forecast:56,damage:"Low-lying areas submerged"},
+{date:"15-07-2025",river:"Ganga",loc:"Patna, Bihar",station:"Gandhi Ghat",danger:50,current:48,forecast:49,damage:"Minor crop damage"},
+{date:"05-09-2025",river:"Brahmaputra",loc:"Dibrugarh, Assam",station:"Dibrugarh",danger:105,current:108,forecast:110,damage:"Evacuations initiated"},
+{date:"22-07-2024",river:"Yamuna",loc:"Delhi",station:"Old Railway Bridge",danger:204,current:205,forecast:206,damage:"Severe flooding"},
+{date:"10-08-2024",river:"Godavari",loc:"Rajahmundry, AP",station:"Dowleswaram",danger:46,current:47,forecast:48,damage:"River overflow"},
+{date:"18-06-2023",river:"Narmada",loc:"Gujarat",station:"Garudeshwar",danger:121,current:119,forecast:122,damage:"Moderate damage"},
+{date:"09-09-2022",river:"Mahanadi",loc:"Cuttack, Odisha",station:"Naraj",danger:27,current:28,forecast:29,damage:"Villages flooded"},
+{date:"11-08-2021",river:"Kosi",loc:"Supaul, Bihar",station:"Bhimnagar",danger:62,current:63,forecast:65,damage:"Heavy flood impact"},
+
+/* ===== MAJOR HISTORICAL FLOODS ===== */
+
+{date:"Aug 2025",river:"Multiple",loc:"Punjab (All 23 districts)",station:"--",danger:"--",current:"--",forecast:"--",damage:"Worst in 40 years; 1,400+ villages submerged"},
+{date:"July 2024",river:"N/A (Landslides)",loc:"Wayanad, Kerala",station:"--",danger:"--",current:"--",forecast:"--",damage:"420+ deaths due to landslides and floods"},
+{date:"July-Aug 2023",river:"Yamuna",loc:"Delhi & North India",station:"--",danger:"--",current:"--",forecast:"--",damage:"422 deaths; Yamuna reached record level 208.66m"},
+{date:"Aug 2018",river:"Periyar, Pamba",loc:"Kerala",station:"--",danger:"--",current:"--",forecast:"--",damage:"483 deaths; ₹30,000 Cr loss"},
+{date:"June 2013",river:"Alaknanda, Bhagirathi",loc:"Uttarakhand",station:"--",danger:"--",current:"--",forecast:"--",damage:"6,054 deaths; 1 lakh pilgrims stranded"},
+{date:"Aug 2008",river:"Kosi",loc:"Supaul, Bihar",station:"--",danger:"--",current:"--",forecast:"--",damage:"1,399 deaths; 3 million affected"},
+{date:"July 2006",river:"Tapi",loc:"Surat, Gujarat",station:"--",danger:"--",current:"--",forecast:"--",damage:"City submerged for 30 hours due to dam release"},
+{date:"July 2005",river:"Mithi",loc:"Mumbai, Maharashtra",station:"--",danger:"--",current:"--",forecast:"--",damage:"1,094 deaths; 944mm rainfall in 24 hrs"},
+{date:"Aug 1979",river:"Machchhu",loc:"Morbi, Gujarat",station:"--",danger:"--",current:"--",forecast:"--",damage:"1,800–2,500 deaths; Machchhu Dam failure"},
+{date:"Sept 1971",river:"Gomti",loc:"Lucknow, Uttar Pradesh",station:"--",danger:"--",current:"--",forecast:"--",damage:"268 deaths across UP"},
+{date:"Sept 1970",river:"Narmada",loc:"Gujarat & Madhya Pradesh",station:"--",danger:"--",current:"--",forecast:"--",damage:"World record river discharge"},
+{date:"Oct 1943",river:"Cooum, Adyar",loc:"Madras (Chennai)",station:"--",danger:"--",current:"--",forecast:"--",damage:"Thousands homeless; major destruction"}
+
+];
+
+let table=document.getElementById("dbTable");
+table.innerHTML="";
+
+data.forEach(d=>{
+table.innerHTML+=`<tr>
+<td>${d.date}</td>
+<td>${d.river}</td>
+<td>${d.loc}</td>
+<td>${d.station}</td>
+<td>${d.danger}</td>
+<td>${d.current}</td>
+<td>${d.forecast}</td>
+<td>${d.damage}</td>
+</tr>`;
+});
+
+}
+
+</script>
+
+</body>
+</html>
