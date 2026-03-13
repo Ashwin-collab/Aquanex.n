@@ -2,386 +2,1087 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>AQUANEX – Smart River Monitoring Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AQUANEX – Smart River Monitoring</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <style>
+/* ═══════════════════════════════════════════════════
+   AQUANEX — BRIGHT RAINBOW EDITION 🌈
+   White base · Bold saturated color blocks
+   Font: Fredoka One (display) + Nunito (body)
+═══════════════════════════════════════════════════ */
 
-/* ================= BODY ================= */
-body{
-    margin:0;
-    font-family:'Segoe UI',sans-serif;
-    background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-    color:white;
-    text-align:center;
-    overflow-x:hidden;
+:root {
+  --blue:    #2563EB;
+  --sky:     #06B6D4;
+  --green:   #16A34A;
+  --lime:    #65A30D;
+  --yellow:  #EAB308;
+  --orange:  #EA580C;
+  --red:     #DC2626;
+  --pink:    #EC4899;
+  --purple:  #7C3AED;
+  --teal:    #0D9488;
+
+  --bg:      #F0FAFB;
+  --white:   #FFFFFF;
+  --dark:    #0F172A;
+  --mid:     #334155;
+  --soft:    #64748B;
+  --border:  #E2E8F0;
+
+  --r:   18px;
+  --r-sm: 10px;
+  --font-head: 'Fredoka One', cursive;
+  --font-body: 'Nunito', sans-serif;
 }
 
-/* ================= HEADER ================= */
-header{
-    background:linear-gradient(90deg,#001f3f,#003366,#001f3f);
-    padding:18px;
-    font-size:24px;
-    font-weight:bold;
-    letter-spacing:1px;
-    box-shadow:0 0 15px rgba(0,200,255,0.4);
-    animation:headerGlow 4s infinite alternate;
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--dark);
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-@keyframes headerGlow{
-    from{box-shadow:0 0 10px rgba(0,200,255,0.3);}
-    to{box-shadow:0 0 25px rgba(0,200,255,0.7);}
+/* Confetti-dot background */
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(37,99,235,0.06) 2px, transparent 2px),
+    radial-gradient(circle, rgba(234,179,8,0.06) 2px, transparent 2px),
+    radial-gradient(circle, rgba(22,163,74,0.05) 2px, transparent 2px);
+  background-size: 48px 48px, 72px 72px, 96px 96px;
+  background-position: 0 0, 24px 24px, 48px 8px;
+  pointer-events: none; z-index: 0;
 }
 
-/* ================= PAGE FADE ================= */
-.page{display:none; animation:fade 0.4s ease;}
-.active{display:block;}
+/* ── FLOOD POPUP ──────────────────────── */
+#floodPopup {
+  position: fixed; top: 88px; right: 18px; z-index: 9999;
+  background: linear-gradient(135deg, #FF4E6A, #C0002E);
+  border: 3px solid #FF8FAA;
+  border-radius: 20px; padding: 18px 22px;
+  max-width: 310px; box-shadow: 0 10px 40px rgba(220,38,38,0.45);
+  transform: translateX(130%);
+  transition: transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
+  display: flex; align-items: flex-start; gap: 12px; color: white;
+}
+#floodPopup.show { transform: translateX(0); }
+.pop-ico { font-size: 1.8rem; animation: wobble 0.5s ease-in-out infinite alternate; }
+@keyframes wobble { from{transform:rotate(-12deg) scale(1.1)} to{transform:rotate(12deg) scale(0.9)} }
+.pop-title { font-family: var(--font-head); font-size: 1rem; letter-spacing: 0.5px; margin-bottom: 3px; }
+.pop-msg   { font-size: 0.78rem; opacity: 0.92; line-height: 1.4; }
+.pop-close {
+  position: absolute; top: 10px; right: 12px;
+  background: rgba(255,255,255,0.25); border: none; color: white;
+  border-radius: 50%; width: 22px; height: 22px; font-size: 0.75rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.pop-close:hover { background: rgba(255,255,255,0.4); transform: none; box-shadow: none; }
 
-@keyframes fade{
-    from{opacity:0; transform:translateY(8px);}
-    to{opacity:1; transform:translateY(0);}
+/* ── HEADER ───────────────────────────── */
+header {
+  position: sticky; top: 0; z-index: 500;
+  background: linear-gradient(135deg, var(--blue) 0%, var(--sky) 100%);
+  padding: 0 28px; height: 72px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 6px 30px rgba(37,99,235,0.35);
 }
 
-/* ================= CONTAINER ================= */
-.container{
-    display:flex;
-    justify-content:center;
-    flex-wrap:wrap;
-    padding:20px;
+/* rainbow bar */
+header::after {
+  content: "";
+  position: absolute; bottom: 0; left: 0; right: 0; height: 5px;
+  background: linear-gradient(90deg,
+    #FF4E4E 0%, #FF9F43 16.6%, #FDD835 33.3%,
+    #26C281 50%, #3B82F6 66.6%, #7C3AED 83.3%, #EC4899 100%);
 }
 
-/* ================= STATION CARD ================= */
-.station{
-    background:rgba(255,255,255,0.08);
-    backdrop-filter:blur(10px);
-    width:320px;
-    padding:22px;
-    margin:15px;
-    border-radius:18px;
-    box-shadow:0 0 15px rgba(0,0,0,0.4);
-    transition:0.3s;
+.logo-row {
+  display: flex; align-items: center; gap: 13px;
+}
+.logo-bubble {
+  width: 46px; height: 46px; border-radius: 14px;
+  background: rgba(255,255,255,0.25);
+  border: 2px solid rgba(255,255,255,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+.logo-text-main {
+  font-family: var(--font-head);
+  font-size: 1.6rem; color: white;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.logo-text-sub {
+  font-size: 0.65rem; color: rgba(255,255,255,0.8);
+  letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; margin-top: 1px;
 }
 
-.station:hover{
-    transform:translateY(-6px) scale(1.02);
-    box-shadow:0 10px 25px rgba(0,200,255,0.3);
+.hdr-right { display: flex; align-items: center; gap: 10px; }
+
+.hdr-time {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 20px; padding: 6px 14px;
+  font-size: 0.82rem; font-weight: 700; color: white;
+  font-variant-numeric: tabular-nums;
 }
 
-/* ================= BUTTON ================= */
-button{
-    padding:11px 20px;
-    border:none;
-    border-radius:25px;
-    background:linear-gradient(90deg,#00c6ff,#0072ff);
-    color:white;
-    cursor:pointer;
-    margin:8px;
-    font-weight:500;
-    transition:0.25s;
-    position:relative;
-    overflow:hidden;
+.live-badge {
+  display: flex; align-items: center; gap: 7px;
+  background: white; border-radius: 20px; padding: 6px 14px;
+  font-size: 0.78rem; font-weight: 800; color: var(--blue);
+}
+.live-dot {
+  width: 8px; height: 8px; background: var(--green); border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(22,163,74,0.25);
+  animation: livePulse 1.8s infinite;
+}
+@keyframes livePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(22,163,74,0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(22,163,74,0); }
+  100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); }
 }
 
-button:hover{
-    transform:scale(1.05);
-    box-shadow:0 0 12px rgba(0,200,255,0.7);
+/* ── NAV ──────────────────────────────── */
+nav {
+  background: white;
+  border-bottom: 3px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 28px;
+  box-shadow: 0 3px 16px rgba(0,0,0,0.06);
+  position: sticky; top: 72px; z-index: 400;
+  flex-wrap: wrap;
 }
 
-/* Ripple Effect */
-button::after{
-    content:"";
-    position:absolute;
-    width:0;
-    height:0;
-    background:rgba(255,255,255,0.4);
-    border-radius:50%;
-    transform:translate(-50%,-50%);
-    left:50%;
-    top:50%;
-    transition:0.4s;
+.nb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-body); font-size: 0.88rem; font-weight: 800;
+  padding: 9px 20px; background: var(--bg);
+  border: 2px solid var(--border); border-radius: 30px;
+  color: var(--soft); cursor: pointer; transition: all 0.22s;
+  white-space: nowrap;
 }
-button:active::after{
-    width:200px;
-    height:200px;
+.nb:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+.nb.active {
+  background: var(--blue); border-color: var(--blue);
+  color: white; box-shadow: 0 6px 20px rgba(37,99,235,0.4);
+  transform: translateY(-2px);
+}
+.nb::after { display: none; }
+
+.nav-right {
+  margin-left: auto; display: flex; align-items: center; gap: 8px;
+  font-size: 0.75rem; color: var(--soft); font-weight: 700;
+}
+.refresh-chip {
+  display: flex; align-items: center; gap: 5px;
+  background: #FEF9C3; border: 2px solid #FDE047;
+  border-radius: 20px; padding: 4px 12px; color: #713F12;
+}
+.refresh-chip i { color: var(--orange); animation: spin 2s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── PAGE ──────────────────────────────── */
+.page { display: none; position: relative; z-index: 1; }
+.page.active { display: block; animation: pgIn 0.35s ease; }
+@keyframes pgIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+/* ═══════════════════════════════
+   ALERT BANNER
+═══════════════════════════════ */
+.alert-banner {
+  margin: 22px 24px 0; padding: 16px 22px;
+  border-radius: var(--r); border: 3px solid;
+  display: flex; align-items: center; gap: 16px;
+  transition: all 0.4s; font-family: var(--font-body);
+}
+.ab-icon {
+  width: 50px; height: 50px; border-radius: 14px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+}
+.ab-title { font-family: var(--font-head); font-size: 1.05rem; letter-spacing: 0.5px; margin-bottom: 2px; }
+.ab-sub   { font-size: 0.76rem; opacity: 0.75; font-weight: 600; }
+.ab-lvl   {
+  margin-left: auto; flex-shrink: 0;
+  font-family: var(--font-head); font-size: 0.85rem; letter-spacing: 1px;
+  padding: 6px 14px; border-radius: 20px; border: 2.5px solid currentColor;
 }
 
-/* BACK BUTTON */
-.back{
-    position:absolute;
-    left:20px;
-    top:85px;
-    background:linear-gradient(90deg,#ff512f,#dd2476);
+.alert-banner.normal   { background:#ECFDF5; border-color:#22C55E; color:#166534; }
+.alert-banner.normal .ab-icon { background:#DCFCE7; }
+.alert-banner.watch    { background:#EFF6FF; border-color:#3B82F6; color:#1E40AF; }
+.alert-banner.watch .ab-icon  { background:#DBEAFE; }
+.alert-banner.minor    { background:#F0FDFA; border-color:#14B8A6; color:#0F766E; }
+.alert-banner.minor .ab-icon  { background:#CCFBF1; }
+.alert-banner.moderate { background:#FEFCE8; border-color:#EAB308; color:#713F12; }
+.alert-banner.moderate .ab-icon { background:#FEF9C3; }
+.alert-banner.severe   { background:#FFF7ED; border-color:#F97316; color:#9A3412; }
+.alert-banner.severe .ab-icon   { background:#FFEDD5; }
+.alert-banner.extreme  { background:#FFF1F2; border-color:#F43F5E; color:#881337; animation:xShake 1s ease-in-out infinite; }
+.alert-banner.extreme .ab-icon  { background:#FFE4E6; }
+@keyframes xShake {
+  0%,100%{ transform:translateX(0); }
+  10%,30%,50%,70%,90%{ transform:translateX(-3px); }
+  20%,40%,60%,80%{ transform:translateX(3px); }
 }
 
-/* ================= MAP ================= */
-.map{
-    height:180px;
-    margin-top:12px;
-    border-radius:12px;
-    overflow:hidden;
+/* ═══════════════════════════════
+   MAIN GRID
+═══════════════════════════════ */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  padding: 20px 24px 30px;
+  max-width: 1500px; margin: 0 auto;
+}
+@media(max-width:900px){ .main-grid{ grid-template-columns:1fr 1fr; } }
+@media(max-width:560px){ .main-grid{ grid-template-columns:1fr; } }
+
+/* ── METRIC CARD ───────────────── */
+.mc {
+  border-radius: var(--r); padding: 24px 22px;
+  border: 3px solid transparent;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.1);
+  position: relative; overflow: hidden;
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.mc:hover { transform: translateY(-6px); box-shadow: 0 14px 40px rgba(0,0,0,0.18); }
+
+/* Card color themes */
+.mc-blue   { background: linear-gradient(135deg, #EFF6FF, #DBEAFE); border-color: #93C5FD; }
+.mc-orange { background: linear-gradient(135deg, #FFF7ED, #FFEDD5); border-color: #FDBA74; }
+.mc-green  { background: linear-gradient(135deg, #F0FDF4, #DCFCE7); border-color: #86EFAC; }
+.mc-teal   { background: linear-gradient(135deg, #F0FDFA, #CCFBF1); border-color: #5EEAD4; }
+.mc-purple { background: linear-gradient(135deg, #F5F3FF, #EDE9FE); border-color: #C4B5FD; }
+.mc-pink   { background: linear-gradient(135deg, #FFF1F2, #FFE4E6); border-color: #FDA4AF; }
+.mc-yellow { background: linear-gradient(135deg, #FEFCE8, #FEF9C3); border-color: #FDE047; }
+
+/* Big decorative circle */
+.mc-circle {
+  position: absolute; top: -20px; right: -20px;
+  width: 100px; height: 100px; border-radius: 50%;
+  opacity: 0.15;
 }
 
-/* ================= TABLE ================= */
-table{
-    width:95%;
-    margin:25px auto;
-    border-collapse:collapse;
-    background:rgba(255,255,255,0.95);
-    color:black;
-    border-radius:10px;
-    overflow:hidden;
+.mc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+
+.mc-label {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--mid);
+  display: flex; align-items: center; gap: 7px;
 }
 
-th{
-    background:linear-gradient(90deg,#1877f2,#00c6ff);
-    color:white;
+.mc-icon-box {
+  width: 42px; height: 42px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; border: 2px solid rgba(0,0,0,0.08);
 }
 
-th,td{
-    padding:13px;
+.val {
+  font-family: var(--font-head); font-size: 3.4rem; line-height: 1;
+  letter-spacing: 1px; transition: color 0.5s;
+}
+.val-unit { font-size: 1.3rem; opacity: 0.6; margin-left: 3px; font-family: var(--font-body); font-weight: 800; }
+
+@keyframes popVal { 0%{transform:scale(1)} 40%{transform:scale(1.08)} 100%{transform:scale(1)} }
+.val.pop { animation: popVal 0.4s ease; }
+
+.mc-footer {
+  margin-top: 12px; padding-top: 12px;
+  border-top: 2px dashed rgba(0,0,0,0.08);
+  font-size: 0.74rem; font-weight: 700; color: var(--mid);
+  display: flex; align-items: center; gap: 6px;
 }
 
-tbody tr{
-    transition:0.2s;
+/* Progress bar */
+.pbar { height: 8px; background: rgba(0,0,0,0.08); border-radius: 20px; overflow: hidden; margin-top: 10px; }
+.pfill { height: 100%; border-radius: 20px; transition: width 1.6s cubic-bezier(0.4,0,0.2,1); }
+
+/* ── WIDE CARDS ────────────────── */
+.span2 { grid-column: span 2; }
+.span3 { grid-column: span 3; }
+@media(max-width:900px){ .span2{ grid-column:span 2; } .span3{ grid-column:span 2; } }
+@media(max-width:560px){ .span2,.span3{ grid-column:span 1; } }
+
+/* ── WATER TANK CARD ────────────── */
+.tank-card {
+  background: rgb(255, 255, 255); border-radius: var(--r);
+  border: 3px solid #187bb1; padding: 22px;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.1);
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.tank-card:hover { transform: translateY(-5px); box-shadow: 0 14px 40px rgba(0,0,0,0.14); }
+
+.tank-row { display: flex; gap: 18px; align-items: flex-end; margin-top: 16px; }
+
+.wtank {
+  width: 88px; height: 220px; flex-shrink: 0;
+  background: #1f86ca; border: 3px solid #7DD3FC;
+  border-radius: 14px; position: relative; overflow: hidden;
+}
+.wtank::before {
+  content: "";
+  position: absolute; top: 0; left: 6px; width: 5px; height: 100%;
+  background: linear-gradient(180deg,rgba(255,255,255,0.7),transparent);
+  border-radius: 4px; z-index: 5; pointer-events: none;
 }
 
-tbody tr:hover{
-    background:#e8f6ff;
+.wbody {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(180deg, #38BDF8 0%, #0369A1 100%);
+  transition: height 1.8s cubic-bezier(0.4,0,0.2,1);
+}
+.wbody.wl-danger { background: linear-gradient(180deg, #FB7185 0%, #BE123C 100%); }
+.wbody.wl-warn   { background: linear-gradient(180deg, #FCD34D 0%, #B45309 100%); }
+
+.wave1, .wave2 {
+  position: absolute; top: -14px; left: -30%; width: 160%; height: 28px;
+  border-radius: 50%; background: rgba(255,255,255,0.45);
+  animation: wvA 3.5s ease-in-out infinite;
+}
+.wave2 { top: -8px; opacity: 0.5; animation: wvA 5s ease-in-out infinite reverse; }
+@keyframes wvA { 0%,100%{transform:translateX(0) scaleY(1)} 50%{transform:translateX(10%) scaleY(1.5)} }
+
+.d-line {
+  position: absolute; left: 0; right: 0; height: 2.5px;
+  background: repeating-linear-gradient(90deg,#F43F5E 0,#F43F5E 7px,transparent 7px,transparent 13px);
+  z-index: 4;
+}
+.d-lbl {
+  position: absolute; right: 5px; font-size: 0.58rem; font-weight: 800;
+  font-family: var(--font-body); color: #F43F5E; transform: translateY(-13px); z-index: 5;
 }
 
-/* ================= GALLERY ================= */
-.gallery{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-    gap:25px;
-    padding:30px;
+.tscale {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 34px;
+  display: flex; flex-direction: column; justify-content: space-between; padding: 7px 5px;
+  border-left: 2px dashed #BAE6FD;
+}
+.tm { font-size: 0.58rem; font-weight: 800; color: #64748B; text-align: right; }
+
+.chart-wrap { flex: 1; height: 220px; position: relative; }
+
+/* ── FLOOD STATUS CARD ─────────── */
+.status-card {
+  background: white; border-radius: var(--r);
+  border: 3px solid #C4B5FD; padding: 22px;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.1);
+  transition: transform 0.25s;
+}
+.status-card:hover { transform: translateY(-5px); }
+
+.level-rows { margin-top: 12px; }
+.lvl-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 10px; margin-bottom: 6px;
+  border: 2px solid transparent; transition: all 0.2s;
+  font-size: 0.82rem; font-weight: 700;
+}
+.lvl-row.active-level { border-color: currentColor; }
+.lvl-row.lv-normal  { background:#F0FDF4; color:#166534; }
+.lvl-row.lv-watch   { background:#EFF6FF; color:#1D4ED8; }
+.lvl-row.lv-minor   { background:#F0FDFA; color:#0F766E; }
+.lvl-row.lv-moderate{ background:#FEFCE8; color:#92400E; }
+.lvl-row.lv-severe  { background:#FFF7ED; color:#9A3412; }
+.lvl-row.lv-extreme { background:#FFF1F2; color:#9F1239; }
+
+.lvl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* Countdown donut */
+.cd-wrap { text-align: center; margin-top: 12px; }
+.cd-svg { transform: rotate(-90deg); display: inline-block; }
+.cd-track { fill: none; stroke: #E2E8F0; stroke-width: 5; }
+.cd-fill  { fill: none; stroke: var(--blue); stroke-width: 5; stroke-dasharray: 126; stroke-dashoffset: 126; stroke-linecap: round; transition: stroke-dashoffset 0.25s linear; }
+.cd-num { font-family: var(--font-head); font-size: 1.5rem; color: var(--blue); margin-top: -4px; }
+.cd-lbl { font-size: 0.7rem; font-weight: 700; color: var(--soft); margin-top: -2px; }
+
+/* ═══════════════════════════════
+   STATIONS PAGE
+═══════════════════════════════ */
+.page-banner {
+  margin: 24px 24px 0;
+  padding: 20px 26px;
+  border-radius: var(--r);
+  display: flex; align-items: center; gap: 18px;
+}
+.pb-blue   { background: linear-gradient(135deg, #2563EB, #06B6D4); }
+.pb-purple { background: linear-gradient(135deg, #7C3AED, #EC4899); }
+.pb-icon   { font-size: 2rem; }
+.pb-title  { font-family: var(--font-head); font-size: 1.3rem; color: white; letter-spacing: 0.5px; }
+.pb-sub    { font-size: 0.78rem; color: rgba(255,255,255,0.8); font-weight: 600; margin-top: 2px; }
+
+.stations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px,1fr));
+  gap: 20px; padding: 20px 24px 30px;
+  max-width: 1400px; margin: 0 auto;
 }
 
-.gallery-item{
-    border-radius:12px;
-    overflow:hidden;
-    box-shadow:0 0 15px rgba(0,0,0,0.4);
-    transition:0.3s;
+.stn-card {
+  background: white; border-radius: var(--r);
+  border: 3px solid var(--border); padding: 22px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.09);
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.stn-card:hover { transform: translateY(-6px); box-shadow: 0 14px 40px rgba(0,0,0,0.14); }
+
+.stn-top-strip { height: 6px; border-radius: 10px; margin-bottom: 18px; }
+.strip-blue   { background: linear-gradient(90deg, #2563EB, #06B6D4); }
+.strip-green  { background: linear-gradient(90deg, #16A34A, #65A30D); }
+.strip-purple { background: linear-gradient(90deg, #7C3AED, #EC4899); }
+
+.stn-hdr { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.stn-num {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head); font-size: 1.2rem; color: white; flex-shrink: 0;
+}
+.sn-blue   { background: linear-gradient(135deg, #2563EB, #06B6D4); box-shadow: 0 4px 14px rgba(37,99,235,0.4); }
+.sn-green  { background: linear-gradient(135deg, #16A34A, #65A30D); box-shadow: 0 4px 14px rgba(22,163,74,0.4); }
+.sn-purple { background: linear-gradient(135deg, #7C3AED, #EC4899); box-shadow: 0 4px 14px rgba(124,58,237,0.4); }
+
+.stn-name { font-family: var(--font-head); font-size: 1.1rem; color: var(--dark); }
+.stn-loc  { font-size: 0.76rem; color: var(--soft); font-weight: 700; margin-top: 2px; }
+
+.stn-btns { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+
+.btn-col {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--font-body); font-size: 0.8rem; font-weight: 800;
+  padding: 9px 16px; border-radius: 25px;
+  cursor: pointer; transition: all 0.2s; border: 2.5px solid;
+}
+.btn-col:hover { transform: translateY(-2px); }
+.btn-col::after { display: none; }
+
+.bc-blue   { background: #EFF6FF; color: #1D4ED8; border-color: #93C5FD; }
+.bc-blue:hover   { background: #2563EB; color: white; box-shadow: 0 6px 18px rgba(37,99,235,0.4); }
+.bc-green  { background: #F0FDF4; color: #166534; border-color: #86EFAC; }
+.bc-green:hover  { background: #16A34A; color: white; box-shadow: 0 6px 18px rgba(22,163,74,0.4); }
+.bc-purple { background: #F5F3FF; color: #5B21B6; border-color: #C4B5FD; }
+.bc-purple:hover { background: #7C3AED; color: white; box-shadow: 0 6px 18px rgba(124,58,237,0.4); }
+
+.map { height: 190px; border-radius: 12px; overflow: hidden; border: 2.5px solid var(--border); }
+
+/* ═══════════════════════════════
+   DATABASE PAGE
+═══════════════════════════════ */
+.db-wrap { padding: 20px 24px 36px; max-width: 1500px; margin: 0 auto; }
+
+.sec-hdr {
+  display: flex; align-items: center; gap: 12px; margin: 10px 0 16px;
+}
+.sec-badge {
+  font-family: var(--font-head); font-size: 0.85rem; letter-spacing: 0.5px;
+  padding: 6px 16px; border-radius: 20px; color: white;
+  display: flex; align-items: center; gap: 7px;
+}
+.sb-blue   { background: linear-gradient(90deg, #2563EB, #06B6D4); box-shadow: 0 4px 14px rgba(37,99,235,0.35); }
+.sb-purple { background: linear-gradient(90deg, #7C3AED, #EC4899); box-shadow: 0 4px 14px rgba(124,58,237,0.35); }
+
+.sec-line { flex: 1; height: 2px; background: var(--border); border-radius: 2px; }
+
+.tbl-wrap { border-radius: var(--r); overflow: hidden; border: 3px solid var(--border); box-shadow: 0 6px 24px rgba(0,0,0,0.09); }
+table { width: 100%; border-collapse: collapse; font-size: 0.83rem; background: white; color: var(--dark); }
+
+thead th {
+  font-size: 0.68rem; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: white;
+  padding: 14px 15px; text-align: left; white-space: nowrap;
+}
+thead { background: linear-gradient(90deg, #2563EB, #0284C7); }
+
+tbody td { padding: 12px 15px; border-bottom: 2px solid #F1F5F9; color: var(--mid); }
+tbody td:nth-child(2) { color: var(--blue); font-weight: 800; }
+tbody td:nth-child(3) { color: var(--dark); font-weight: 700; }
+tbody tr:nth-child(even) td { background: #F8FAFC; }
+tbody tr:hover td { background: #EFF6FF; }
+tbody tr:last-child td { border-bottom: none; }
+
+/* Gallery */
+.gallery {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
+  gap: 18px; margin-top: 4px;
+}
+.gi {
+  border-radius: var(--r); overflow: hidden; border: 3px solid var(--border);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.1); transition: transform 0.25s, box-shadow 0.25s;
+}
+.gi:hover { transform: scale(1.03) rotate(0.5deg); box-shadow: 0 14px 40px rgba(0,0,0,0.16); }
+.gi img { width: 100%; height: 175px; object-fit: cover; display: block; }
+.gi-cap {
+  padding: 12px 16px; font-size: 0.82rem; font-weight: 800; color: white;
+  display: flex; align-items: center; gap: 8px;
+}
+.gc-blue  { background: linear-gradient(90deg, #2563EB, #06B6D4); }
+.gc-grn   { background: linear-gradient(90deg, #16A34A, #0D9488); }
+.gc-oran  { background: linear-gradient(90deg, #EA580C, #EAB308); }
+.gc-pink  { background: linear-gradient(90deg, #DB2777, #9333EA); }
+
+/* ── FOOTER ───────────────────────── */
+footer {
+  background: linear-gradient(135deg, var(--blue), var(--sky));
+  padding: 18px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px; margin-top: 30px;
+}
+footer::before {
+  content: "";
+  position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, #FF4E4E, #FF9F43, #FDD835, #26C281, #3B82F6, #7C3AED, #EC4899);
+}
+.ft-txt { font-size: 0.78rem; font-weight: 700; color: rgba(255,255,255,0.85); }
+.ft-pill {
+  background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 20px; padding: 4px 14px;
+  font-size: 0.7rem; font-weight: 800; color: white; letter-spacing: 0.5px;
 }
 
-.gallery-item:hover{
-    transform:scale(1.04);
-}
-
-.gallery-item img{
-    width:100%;
-    height:180px;
-    object-fit:cover;
-}
-
-.caption{
-    padding:10px;
-    background:#111;
-}
-
+/* ── Global button reset ──────── */
+button { font-family: var(--font-body); cursor: pointer; transition: all 0.2s; }
 </style>
 </head>
-
 <body>
 
-<header>🇮🇳 AQUANEX – Smart River Monitoring Dashboard</header>
-
-<!-- ================= STATIONS ================= -->
-<div id="stationsPage" class="page active">
-
-<h2>River Monitoring Stations</h2>
-<button onclick="openDatabase()">🗄 Flood Database (India)</button>
-
-<div class="container">
-
-<div class="station">
-<h3>🌊 Station 1</h3>
-<div id="status1">Location: Not Available</div>
-<button onclick="getLocation(1)">📍 Get Geo Location</button>
-<button onclick="openMonitor(1)">📊 Monitor</button>
-<div id="map1" class="map"></div>
+<!-- POPUP -->
+<div id="floodPopup">
+  <div class="pop-ico">🚨</div>
+  <div>
+    <div class="pop-title">Extreme Flood Alert!</div>
+    <div class="pop-msg">Water level exceeded 250 cm! Evacuate immediately and contact authorities.</div>
+  </div>
+  <button class="pop-close" onclick="this.parentElement.classList.remove('show')">✕</button>
 </div>
 
-<div class="station">
-<h3>🌊 Station 2</h3>
-<div id="status2">Location: Not Available</div>
-<button onclick="getLocation(2)">📍 Get Geo Location</button>
-<button onclick="openMonitor(2)">📊 Monitor</button>
-<div id="map2" class="map"></div>
+<!-- HEADER -->
+<header>
+  <div class="logo-row">
+    <div class="logo-bubble">🌊</div>
+    <div>
+      <div class="logo-text-main">AQUANEX</div>
+      <div class="logo-text-sub">Smart River Monitoring · Govt. of India</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-time" id="headerTime">--:--:--</div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      <span id="systemStatus">Connecting…</span>
+    </div>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <button class="nb active" onclick="showPage('livePage',this)">
+    <i class="fas fa-satellite-dish"></i> Live Monitor
+  </button>
+  <button class="nb" onclick="showPage('stationsPage',this)">
+    <i class="fas fa-map-marked-alt"></i> Stations
+  </button>
+  <button class="nb" onclick="showPage('databasePage',this); loadFloodDB()">
+    <i class="fas fa-database"></i> Flood Database
+  </button>
+
+  <div class="nav-right">
+    <div class="refresh-chip">
+      <i class="fas fa-sync-alt"></i> Auto-refresh every 5 seconds
+    </div>
+    <span id="lastUpdated" style="color:var(--soft); font-weight:700">
+      <i class="fas fa-clock"></i> --
+    </span>
+  </div>
+</nav>
+
+<!-- ══════════ LIVE MONITOR ══════════ -->
+<div id="livePage" class="page active">
+
+  <!-- Alert Banner -->
+  <div class="alert-banner normal" id="alertBanner">
+    <div class="ab-icon" id="alertIcon"><i class="fas fa-check-circle" style="font-size:1.3rem"></i></div>
+    <div style="flex:1">
+      <div class="ab-title" id="alertText">System Initializing — Fetching live sensor data…</div>
+      <div class="ab-sub">Real-time flood alert · Updates every 5 seconds from ESP32 IoT sensors</div>
+    </div>
+    <div class="ab-lvl" id="alertLevel">NORMAL</div>
+  </div>
+
+  <div class="main-grid">
+
+    <!-- Water Level -->
+    <div class="mc mc-blue">
+      <div class="mc-circle" style="background:#2563EB"></div>
+      <div class="mc-header">
+        <div class="mc-label"><i class="fas fa-water" style="color:#2563EB"></i> Water Level</div>
+        <div class="mc-icon-box" style="background:#DBEAFE; color:#1D4ED8">
+          <i class="fas fa-water"></i>
+        </div>
+      </div>
+      <div class="val" id="waterLevelVal" style="color:#1D4ED8">
+        --<span class="val-unit">cm</span>
+      </div>
+      <div class="mc-footer">
+        <i class="fas fa-exclamation-triangle" style="color:#DC2626"></i>
+        Danger at <strong style="color:#DC2626">250 cm</strong>
+      </div>
+      <div class="pbar" style="margin-top:10px">
+        <div class="pfill" id="wlBar" style="width:0%;background:linear-gradient(90deg,#22C55E,#3B82F6,#F97316,#EF4444)"></div>
+      </div>
+    </div>
+
+    <!-- Temperature -->
+    <div class="mc mc-orange">
+      <div class="mc-circle" style="background:#EA580C"></div>
+      <div class="mc-header">
+        <div class="mc-label"><i class="fas fa-thermometer-half" style="color:#EA580C"></i> Temperature</div>
+        <div class="mc-icon-box" style="background:#FFEDD5; color:#C2410C">
+          <i class="fas fa-thermometer-half"></i>
+        </div>
+      </div>
+      <div class="val" id="tempVal" style="color:#C2410C">
+        --<span class="val-unit">°C</span>
+      </div>
+      <div class="mc-footer">
+        <i class="fas fa-microchip" style="color:#EA580C"></i>
+        DHT11 ambient temperature sensor
+      </div>
+    </div>
+
+    <!-- Humidity -->
+    <div class="mc mc-teal">
+      <div class="mc-circle" style="background:#0D9488"></div>
+      <div class="mc-header">
+        <div class="mc-label"><i class="fas fa-tint" style="color:#0D9488"></i> Humidity</div>
+        <div class="mc-icon-box" style="background:#CCFBF1; color:#0F766E">
+          <i class="fas fa-tint"></i>
+        </div>
+      </div>
+      <div class="val" id="humidVal" style="color:#0F766E">
+        --<span class="val-unit">%</span>
+      </div>
+      <div class="mc-footer">
+        <i class="fas fa-cloud-rain" style="color:#0D9488"></i>
+        Relative humidity reading
+      </div>
+      <div class="pbar" style="margin-top:10px">
+        <div class="pfill" id="humBar" style="width:0%;background:linear-gradient(90deg,#06B6D4,#0D9488)"></div>
+      </div>
+    </div>
+
+    <!-- Water Tank + Chart -->
+    <div class="tank-card span2">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div>
+          <div style="font-family:var(--font-head);font-size:1.1rem;color:var(--blue)">
+            <i class="fas fa-chart-area" style="margin-right:6px"></i>Water Level Visualizer
+          </div>
+          <div style="font-size:0.73rem;color:var(--soft);font-weight:700;margin-top:2px">
+            Live tank + 12-reading history chart
+          </div>
+        </div>
+        <div style="background:#EFF6FF;border:2px solid #BFDBFE;border-radius:20px;padding:5px 14px;font-weight:800;font-size:0.8rem;color:#1D4ED8" id="tankPct">
+          --% full
+        </div>
+      </div>
+      <div class="tank-row">
+        <div style="width:88px;flex-shrink:0">
+          <div class="wtank">
+            <div class="wbody" id="waterFill" style="height:0%">
+              <div class="wave1"></div>
+              <div class="wave2"></div>
+            </div>
+            <div class="d-line" style="bottom:83.3%"><span class="d-lbl">250cm ⚠</span></div>
+            <div class="tscale">
+              <span class="tm">300</span><span class="tm">200</span>
+              <span class="tm">100</span><span class="tm">0</span>
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="historyChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Flood Status Card -->
+    <div class="status-card">
+      <div style="font-family:var(--font-head);font-size:1.1rem;color:var(--purple);margin-bottom:4px">
+        <i class="fas fa-shield-alt" style="margin-right:6px"></i>Flood Status
+      </div>
+      <div style="font-family:var(--font-head);font-size:1.3rem;color:var(--dark);margin-top:8px;margin-bottom:4px" id="floodStatusVal">—</div>
+
+      <div class="level-rows">
+        <div class="lvl-row lv-normal"><div class="lvl-dot" style="background:#22C55E"></div>&lt;30 cm — Normal</div>
+        <div class="lvl-row lv-watch"><div class="lvl-dot" style="background:#3B82F6"></div>30–60 cm — Watch</div>
+        <div class="lvl-row lv-minor"><div class="lvl-dot" style="background:#14B8A6"></div>60–120 cm — Minor Flood</div>
+        <div class="lvl-row lv-moderate"><div class="lvl-dot" style="background:#EAB308"></div>120–180 cm — Moderate</div>
+        <div class="lvl-row lv-severe"><div class="lvl-dot" style="background:#F97316"></div>180–250 cm — Severe</div>
+        <div class="lvl-row lv-extreme"><div class="lvl-dot" style="background:#F43F5E"></div>&gt;250 cm — Extreme 🚨</div>
+      </div>
+
+      <div class="cd-wrap">
+        <svg class="cd-svg" width="64" height="64" viewBox="0 0 42 42">
+          <circle class="cd-track" cx="21" cy="21" r="20"/>
+          <circle class="cd-fill" id="cdCircle" cx="21" cy="21" r="20"/>
+        </svg>
+        <div class="cd-num" id="cdNum">5</div>
+        <div class="cd-lbl">sec to next refresh</div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
-<div class="station">
-<h3>🌊 Station 3</h3>
-<div id="status3">Location: Not Available</div>
-<button onclick="getLocation(3)">📍 Get Geo Location</button>
-<button onclick="openMonitor(3)">📊 Monitor</button>
-<div id="map3" class="map"></div>
+<!-- ══════════ STATIONS ══════════ -->
+<div id="stationsPage" class="page">
+  <div class="page-banner pb-blue">
+    <div class="pb-icon">🗺️</div>
+    <div>
+      <div class="pb-title">River Monitoring Stations</div>
+      <div class="pb-sub">Click "Get Location" to pin your ESP32 station on the live map</div>
+    </div>
+  </div>
+
+  <div class="stations-grid">
+
+    <div class="stn-card">
+      <div class="stn-top-strip strip-blue"></div>
+      <div class="stn-hdr">
+        <div class="stn-num sn-blue">S1</div>
+        <div>
+          <div class="stn-name">🌊 Station Alpha</div>
+          <div class="stn-loc" id="status1">Location not set yet</div>
+        </div>
+      </div>
+      <div class="stn-btns">
+        <button class="btn-col bc-blue" onclick="getLocation(1)"><i class="fas fa-location-arrow"></i> Get Location</button>
+        <button class="btn-col bc-green" onclick="openMonitorStation(1)"><i class="fas fa-chart-bar"></i> Monitor</button>
+      </div>
+      <div id="map1" class="map"></div>
+    </div>
+
+    <div class="stn-card">
+      <div class="stn-top-strip strip-green"></div>
+      <div class="stn-hdr">
+        <div class="stn-num sn-green">S2</div>
+        <div>
+          <div class="stn-name">🌊 Station Beta</div>
+          <div class="stn-loc" id="status2">Location not set yet</div>
+        </div>
+      </div>
+      <div class="stn-btns">
+        <button class="btn-col bc-blue" onclick="getLocation(2)"><i class="fas fa-location-arrow"></i> Get Location</button>
+        <button class="btn-col bc-green" onclick="openMonitorStation(2)"><i class="fas fa-chart-bar"></i> Monitor</button>
+      </div>
+      <div id="map2" class="map"></div>
+    </div>
+
+    <div class="stn-card">
+      <div class="stn-top-strip strip-purple"></div>
+      <div class="stn-hdr">
+        <div class="stn-num sn-purple">S3</div>
+        <div>
+          <div class="stn-name">🌊 Station Gamma</div>
+          <div class="stn-loc" id="status3">Location not set yet</div>
+        </div>
+      </div>
+      <div class="stn-btns">
+        <button class="btn-col bc-blue" onclick="getLocation(3)"><i class="fas fa-location-arrow"></i> Get Location</button>
+        <button class="btn-col bc-purple" onclick="openMonitorStation(3)"><i class="fas fa-chart-bar"></i> Monitor</button>
+      </div>
+      <div id="map3" class="map"></div>
+    </div>
+
+  </div>
 </div>
 
-</div>
-</div>
-
-<!-- ================= MONITOR ================= -->
-<div id="monitorPage" class="page">
-<button class="back" onclick="goBack()">⬅ Back</button>
-<h2 id="stationTitle">Station Monitor</h2>
-<button>🌧 Flood Monitor</button>
-<button>🌊 Water Level</button>
-<button>💧 Velocity</button>
-<button>📊 Past Data</button>
-</div>
-
-<!-- ================= DATABASE ================= -->
+<!-- ══════════ DATABASE ══════════ -->
 <div id="databasePage" class="page">
-<button class="back" onclick="goBackToStations()">⬅ Back</button>
+  <div class="page-banner pb-purple">
+    <div class="pb-icon">🗄️</div>
+    <div>
+      <div class="pb-title">India Flood Database</div>
+      <div class="pb-sub">Historical records of major flood events across Indian rivers — live + historical</div>
+    </div>
+  </div>
 
-<h2>🇮🇳 India Flood Database</h2>
+  <div class="db-wrap">
+    <div class="sec-hdr">
+      <div class="sec-badge sb-blue"><i class="fas fa-table"></i> 🇮🇳 Flood Records</div>
+      <div class="sec-line"></div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th><th>River</th><th>Location</th><th>Station</th>
+            <th>Danger (m)</th><th>Current (m)</th><th>Forecast (m)</th><th>Impact</th>
+          </tr>
+        </thead>
+        <tbody id="dbTable"></tbody>
+      </table>
+    </div>
 
-<table>
-<thead>
-<tr>
-<th>Date</th>
-<th>River</th>
-<th>Location</th>
-<th>Station</th>
-<th>Danger</th>
-<th>Current</th>
-<th>Forecast</th>
-<th>Damage</th>
-</tr>
-</thead>
-<tbody id="dbTable"></tbody>
-</table>
-
-<h2>📷 Major Flood Events in India</h2>
-
-<div class="gallery">
-<div class="gallery-item">
-<img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Kerala_Floods_2018.jpg">
-<div class="caption">Kerala Floods (2018)</div>
+    <div class="sec-hdr" style="margin-top:28px">
+      <div class="sec-badge sb-purple"><i class="fas fa-images"></i> 📷 Major Flood Events</div>
+      <div class="sec-line"></div>
+    </div>
+    <div class="gallery">
+      <div class="gi">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Kerala_Floods_2018.jpg"
+             onerror="this.src='https://via.placeholder.com/400x175/2563EB/ffffff?text=Kerala+Floods+2018'">
+        <div class="gi-cap gc-blue"><i class="fas fa-map-marker-alt"></i> Kerala Floods — 2018</div>
+      </div>
+      <div class="gi">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/0/0e/Assam_Flood_2022.jpg"
+             onerror="this.src='https://via.placeholder.com/400x175/16A34A/ffffff?text=Assam+Floods+2022'">
+        <div class="gi-cap gc-grn"><i class="fas fa-map-marker-alt"></i> Assam Floods — 2022</div>
+      </div>
+      <div class="gi">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4f/Bihar_Flood_2017.jpg"
+             onerror="this.src='https://via.placeholder.com/400x175/EA580C/ffffff?text=Bihar+Floods+2017'">
+        <div class="gi-cap gc-oran"><i class="fas fa-map-marker-alt"></i> Bihar Floods — 2017</div>
+      </div>
+      <div class="gi">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/9/9e/Chennai_Floods_2015.jpg"
+             onerror="this.src='https://via.placeholder.com/400x175/9333EA/ffffff?text=Chennai+Floods+2015'">
+        <div class="gi-cap gc-pink"><i class="fas fa-map-marker-alt"></i> Chennai Floods — 2015</div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="gallery-item">
-<img src="https://upload.wikimedia.org/wikipedia/commons/0/0e/Assam_Flood_2022.jpg">
-<div class="caption">Assam Floods (2022)</div>
-</div>
-
-<div class="gallery-item">
-<img src="https://upload.wikimedia.org/wikipedia/commons/4/4f/Bihar_Flood_2017.jpg">
-<div class="caption">Bihar Floods (2017)</div>
-</div>
-
-<div class="gallery-item">
-<img src="https://upload.wikimedia.org/wikipedia/commons/9/9e/Chennai_Floods_2015.jpg">
-<div class="caption">Chennai Floods (2015)</div>
-</div>
-</div>
-
-</div>
+<!-- FOOTER -->
+<footer style="position:relative">
+  <div class="ft-txt">🇮🇳 AQUANEX Smart River Monitoring System · National Disaster Management Authority · Ministry of Jal Shakti</div>
+  <div class="ft-pill">🌊 IoT · ESP32 · Cloud Powered</div>
+</footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
+/* ═══ CONFIG ═══ */
+const API_URL          = "https://script.google.com/macros/s/AKfycby5yrFmneHAr7zs76xKfpfHVzsWoHk8wVPXAJUcwFlgZl3RSk4rmk4F9ky6qUxu-p7MZg/exec";
+const REFRESH_INTERVAL = 20000;
 
-/* PAGE SWITCH */
-function openMonitor(station){
-document.getElementById("stationsPage").classList.remove("active");
-document.getElementById("monitorPage").classList.add("active");
-document.getElementById("stationTitle").innerText="🌊 Station "+station+" Monitoring Panel";
+/* ═══ CLOCK ═══ */
+(function tick() {
+  const ist = new Date(Date.now() + 19800000);
+  document.getElementById("headerTime").textContent = ist.toISOString().slice(11,19) + " IST";
+  setTimeout(tick, 1000);
+})();
+
+/* ═══ PAGES ═══ */
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (btn) btn.classList.add('active');
 }
 
-function goBack(){
-document.getElementById("monitorPage").classList.remove("active");
-document.getElementById("stationsPage").classList.add("active");
-}
-
-function openDatabase(){
-document.getElementById("stationsPage").classList.remove("active");
-document.getElementById("databasePage").classList.add("active");
-setTimeout(loadFloodData,150);
-}
-
-function goBackToStations(){
-document.getElementById("databasePage").classList.remove("active");
-document.getElementById("stationsPage").classList.add("active");
-}
-
-/* MAP + GEO */
-let maps={};
-
-function getLocation(station){
-navigator.geolocation.getCurrentPosition(function(pos){
-let lat=pos.coords.latitude;
-let lon=pos.coords.longitude;
-document.getElementById("status"+station).innerHTML=
-"Lat:"+lat.toFixed(4)+"<br>Lon:"+lon.toFixed(4);
-loadMap(station,lat,lon);
-},()=>alert("Location access denied"));
-}
-
-function loadMap(id,lat,lon){
-if(maps[id]) maps[id].remove();
-let map=L.map("map"+id).setView([lat,lon],13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-L.marker([lat,lon]).addTo(map);
-maps[id]=map;
-}
-
-/* FLOOD DATA */
-function loadFloodData(){
-
-let data=[
-
-/* ===== REAL-TIME STYLE STATION DATA ===== */
-
-{date:"12-08-2025",river:"Krishna",loc:"Vijayawada, Andhra Pradesh",station:"Prakasam Barrage",danger:53,current:55,forecast:56,damage:"Low-lying areas submerged"},
-{date:"15-07-2025",river:"Ganga",loc:"Patna, Bihar",station:"Gandhi Ghat",danger:50,current:48,forecast:49,damage:"Minor crop damage"},
-{date:"05-09-2025",river:"Brahmaputra",loc:"Dibrugarh, Assam",station:"Dibrugarh",danger:105,current:108,forecast:110,damage:"Evacuations initiated"},
-{date:"22-07-2024",river:"Yamuna",loc:"Delhi",station:"Old Railway Bridge",danger:204,current:205,forecast:206,damage:"Severe flooding"},
-{date:"10-08-2024",river:"Godavari",loc:"Rajahmundry, AP",station:"Dowleswaram",danger:46,current:47,forecast:48,damage:"River overflow"},
-{date:"18-06-2023",river:"Narmada",loc:"Gujarat",station:"Garudeshwar",danger:121,current:119,forecast:122,damage:"Moderate damage"},
-{date:"09-09-2022",river:"Mahanadi",loc:"Cuttack, Odisha",station:"Naraj",danger:27,current:28,forecast:29,damage:"Villages flooded"},
-{date:"11-08-2021",river:"Kosi",loc:"Supaul, Bihar",station:"Bhimnagar",danger:62,current:63,forecast:65,damage:"Heavy flood impact"},
-
-/* ===== MAJOR HISTORICAL FLOODS ===== */
-
-{date:"Aug 2025",river:"Multiple",loc:"Punjab (All 23 districts)",station:"--",danger:"--",current:"--",forecast:"--",damage:"Worst in 40 years; 1,400+ villages submerged"},
-{date:"July 2024",river:"N/A (Landslides)",loc:"Wayanad, Kerala",station:"--",danger:"--",current:"--",forecast:"--",damage:"420+ deaths due to landslides and floods"},
-{date:"July-Aug 2023",river:"Yamuna",loc:"Delhi & North India",station:"--",danger:"--",current:"--",forecast:"--",damage:"422 deaths; Yamuna reached record level 208.66m"},
-{date:"Aug 2018",river:"Periyar, Pamba",loc:"Kerala",station:"--",danger:"--",current:"--",forecast:"--",damage:"483 deaths; ₹30,000 Cr loss"},
-{date:"June 2013",river:"Alaknanda, Bhagirathi",loc:"Uttarakhand",station:"--",danger:"--",current:"--",forecast:"--",damage:"6,054 deaths; 1 lakh pilgrims stranded"},
-{date:"Aug 2008",river:"Kosi",loc:"Supaul, Bihar",station:"--",danger:"--",current:"--",forecast:"--",damage:"1,399 deaths; 3 million affected"},
-{date:"July 2006",river:"Tapi",loc:"Surat, Gujarat",station:"--",danger:"--",current:"--",forecast:"--",damage:"City submerged for 30 hours due to dam release"},
-{date:"July 2005",river:"Mithi",loc:"Mumbai, Maharashtra",station:"--",danger:"--",current:"--",forecast:"--",damage:"1,094 deaths; 944mm rainfall in 24 hrs"},
-{date:"Aug 1979",river:"Machchhu",loc:"Morbi, Gujarat",station:"--",danger:"--",current:"--",forecast:"--",damage:"1,800–2,500 deaths; Machchhu Dam failure"},
-{date:"Sept 1971",river:"Gomti",loc:"Lucknow, Uttar Pradesh",station:"--",danger:"--",current:"--",forecast:"--",damage:"268 deaths across UP"},
-{date:"Sept 1970",river:"Narmada",loc:"Gujarat & Madhya Pradesh",station:"--",danger:"--",current:"--",forecast:"--",damage:"World record river discharge"},
-{date:"Oct 1943",river:"Cooum, Adyar",loc:"Madras (Chennai)",station:"--",danger:"--",current:"--",forecast:"--",damage:"Thousands homeless; major destruction"}
-
-];
-
-let table=document.getElementById("dbTable");
-table.innerHTML="";
-
-data.forEach(d=>{
-table.innerHTML+=`<tr>
-<td>${d.date}</td>
-<td>${d.river}</td>
-<td>${d.loc}</td>
-<td>${d.station}</td>
-<td>${d.danger}</td>
-<td>${d.current}</td>
-<td>${d.forecast}</td>
-<td>${d.damage}</td>
-</tr>`;
+/* ═══ CHART ═══ */
+const hd = { lb:[], wl:[], tp:[], hm:[] };
+const chart = new Chart(document.getElementById('historyChart').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: hd.lb,
+    datasets: [
+      { label:'Water Level (cm)', data:hd.wl, borderColor:'#2563EB', backgroundColor:'rgba(37,99,235,0.12)', fill:true, tension:0.42, borderWidth:2.5, pointRadius:4, pointBackgroundColor:'#2563EB', yAxisID:'y' },
+      { label:'Temp (°C)',        data:hd.tp, borderColor:'#EA580C', backgroundColor:'transparent', fill:false, tension:0.42, borderWidth:2, pointRadius:3, borderDash:[5,3], yAxisID:'y1' },
+      { label:'Humidity (%)',     data:hd.hm, borderColor:'#0D9488', backgroundColor:'transparent', fill:false, tension:0.42, borderWidth:2, pointRadius:3, borderDash:[5,3], yAxisID:'y1' }
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    interaction:{ mode:'index', intersect:false },
+    plugins:{
+      legend:{ labels:{ color:'#475569', font:{family:'Nunito',weight:'700',size:11}, boxWidth:14, padding:14 } },
+      tooltip:{
+        backgroundColor:'white', borderColor:'#E2E8F0', borderWidth:2,
+        titleColor:'#0F172A', bodyColor:'#475569', padding:12,
+        titleFont:{family:'Fredoka One',size:12}, bodyFont:{family:'Nunito',weight:'700',size:11}
+      }
+    },
+    scales:{
+      x:{ ticks:{color:'#94A3B8',font:{family:'Nunito',weight:'700',size:9},maxRotation:0}, grid:{color:'#F1F5F9'}, border:{color:'#E2E8F0'} },
+      y:{ type:'linear', position:'left', ticks:{color:'#2563EB',font:{family:'Nunito',weight:'700',size:9}}, grid:{color:'rgba(37,99,235,0.07)'}, border:{color:'#BFDBFE'} },
+      y1:{ type:'linear', position:'right', ticks:{color:'#94A3B8',font:{family:'Nunito',weight:'700',size:9}}, grid:{drawOnChartArea:false}, border:{color:'#E2E8F0'} }
+    }
+  }
 });
 
+function pushChart(wl, temp, hum) {
+  const t = new Date();
+  const lb = `${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}:${t.getSeconds().toString().padStart(2,'0')}`;
+  hd.lb.push(lb); hd.wl.push(wl); hd.tp.push(temp); hd.hm.push(hum);
+  if (hd.lb.length > 12) { hd.lb.shift(); hd.wl.shift(); hd.tp.shift(); hd.hm.shift(); }
+  chart.update('none');
 }
 
+/* ═══ COUNTDOWN ═══ */
+let cd = 5;
+const cdCirc = document.getElementById('cdCircle');
+const cdNum  = document.getElementById('cdNum');
+setInterval(() => {
+  cd--; if (cd < 0) cd = 4;
+  cdNum.textContent = cd + 1;
+  cdCirc.style.strokeDashoffset = 126 - ((cd / 4) * 126);
+}, 1000);
+
+/* ═══ FETCH ═══ */
+async function fetchLatest() {
+  try {
+    const res  = await fetch(API_URL + "?action=latest");
+    const data = await res.json();
+    if (data.status !== "success") throw new Error();
+    updateLiveUI(data);
+    document.getElementById("systemStatus").textContent = "Live · Online";
+  } catch {
+    document.getElementById("systemStatus").textContent = "⚠ Offline";
+  }
+}
+
+function animVal(id, val, unit) {
+  const el = document.getElementById(id);
+  el.innerHTML = `${val}<span class="val-unit">${unit}</span>`;
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+}
+
+function updateLiveUI(d) {
+  const wl   = parseFloat(d.waterLevel)  || 0;
+  const temp = parseFloat(d.temperature) || 0;
+  const hum  = parseFloat(d.humidity)    || 0;
+
+  animVal("waterLevelVal", wl.toFixed(1),   "cm");
+  animVal("tempVal",       temp.toFixed(1), "°C");
+  animVal("humidVal",      hum.toFixed(1),  "%");
+
+  document.getElementById("floodStatusVal").textContent = d.floodStatus || "—";
+  document.getElementById("lastUpdated").innerHTML = `<i class="fas fa-clock"></i> ${d.timestamp || "--"}`;
+
+  // Water level color
+  const wlEl = document.getElementById("waterLevelVal");
+  wlEl.style.color = wl >= 250 ? "#DC2626" : wl >= 120 ? "#D97706" : "#1D4ED8";
+
+  // Progress bars
+  const wlPct = Math.min((wl / 300) * 100, 100);
+  document.getElementById("wlBar").style.width  = wlPct + "%";
+  document.getElementById("humBar").style.width = Math.min(hum, 100) + "%";
+  document.getElementById("tankPct").textContent = wlPct.toFixed(0) + "% full";
+
+  // Tank + highlight active level row
+  const fill = document.getElementById("waterFill");
+  fill.style.height = wlPct + "%";
+  fill.className = "wbody" + (wl>=250 ? " wl-danger" : wl>=120 ? " wl-warn" : "");
+
+  // Highlight active level row
+  const lvlClasses = ['lv-normal','lv-watch','lv-minor','lv-moderate','lv-severe','lv-extreme'];
+  document.querySelectorAll('.lvl-row').forEach(r => r.classList.remove('active-level'));
+  const lvlIdx = wl>=250?5 : wl>=180?4 : wl>=120?3 : wl>=60?2 : wl>=30?1 : 0;
+  document.querySelectorAll('.lvl-row')[lvlIdx]?.classList.add('active-level');
+
+  updateAlert(wl);
+  pushChart(wl, temp, hum);
+
+  if (wl >= 250) {
+    document.getElementById("floodPopup").classList.add("show");
+    setTimeout(() => document.getElementById("floodPopup").classList.remove("show"), 8000);
+  }
+}
+
+function updateAlert(wl) {
+  const b = document.getElementById("alertBanner");
+  const i = document.getElementById("alertIcon");
+  const t = document.getElementById("alertText");
+  const l = document.getElementById("alertLevel");
+  b.className = "alert-banner";
+  const lv = wl>=250 ? ["extreme","fa-radiation-alt", "⚠️ EXTREME FLOOD — Evacuate Immediately!","EXTREME"]
+           : wl>=180 ? ["severe","fa-exclamation-triangle","🟠 Severe Flood Warning — High Alert!","SEVERE"]
+           : wl>=120 ? ["moderate","fa-exclamation-circle","🟡 Moderate Flood — Exercise Caution","MODERATE"]
+           : wl>=60  ? ["minor","fa-info-circle","🔵 Minor Flood Detected — Monitor Closely","MINOR"]
+           : wl>=30  ? ["watch","fa-eye","🟢 Flood Watch — Water Levels Rising","WATCH"]
+           :           ["normal","fa-check-circle","✅ All Clear — Water Levels Normal","NORMAL"];
+  b.classList.add(lv[0]);
+  i.innerHTML = `<i class="fas ${lv[1]}" style="font-size:1.3rem"></i>`;
+  t.textContent = lv[2];
+  l.textContent = lv[3];
+}
+
+fetchLatest();
+setInterval(fetchLatest, REFRESH_INTERVAL);
+
+/* ═══ MAPS ═══ */
+let maps = {};
+function getLocation(s) {
+  if (!navigator.geolocation) { alert("Geolocation not supported."); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+    document.getElementById("status"+s).textContent = `📍 ${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E`;
+    loadMap(s, lat, lon);
+  }, () => alert("Location access denied."));
+}
+function loadMap(id, lat, lon) {
+  if (maps[id]) maps[id].remove();
+  const map = L.map("map"+id, { zoomControl:false, attributionControl:false }).setView([lat,lon], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  const colors = ['#2563EB','#16A34A','#7C3AED'];
+  const icon = L.divIcon({
+    html:`<div style="width:34px;height:34px;background:${colors[id-1]};border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,0.35)">🌊</div>`,
+    className:'', iconAnchor:[17,17]
+  });
+  L.marker([lat,lon],{icon}).addTo(map)
+    .bindPopup(`<b style="font-family:Nunito,sans-serif">Station ${id}</b><br><small>${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E</small>`)
+    .openPopup();
+  maps[id] = map;
+}
+function openMonitorStation(n) {
+  showPage('livePage', document.querySelector('.nb'));
+  document.querySelectorAll('.nb')[0].classList.add('active');
+}
+
+/* ═══ DATABASE ═══ */
+function loadFloodDB() {
+  const data = [
+    {date:"12-08-2025",river:"Krishna",          loc:"Vijayawada, AP",             station:"Prakasam Barrage", danger:53,  current:55,  forecast:56,  damage:"Low-lying areas submerged"},
+    {date:"15-07-2025",river:"Ganga",            loc:"Patna, Bihar",               station:"Gandhi Ghat",      danger:50,  current:48,  forecast:49,  damage:"Minor crop damage"},
+    {date:"05-09-2025",river:"Brahmaputra",      loc:"Dibrugarh, Assam",           station:"Dibrugarh",        danger:105, current:108, forecast:110, damage:"Evacuations initiated"},
+    {date:"22-07-2024",river:"Yamuna",           loc:"Delhi",                      station:"Old Rly. Bridge",  danger:204, current:205, forecast:206, damage:"Severe flooding"},
+    {date:"10-08-2024",river:"Godavari",         loc:"Rajahmundry, AP",            station:"Dowleswaram",      danger:46,  current:47,  forecast:48,  damage:"River overflow"},
+    {date:"18-06-2023",river:"Narmada",          loc:"Gujarat",                    station:"Garudeshwar",      danger:121, current:119, forecast:122, damage:"Moderate damage"},
+    {date:"09-09-2022",river:"Mahanadi",         loc:"Cuttack, Odisha",            station:"Naraj",            danger:27,  current:28,  forecast:29,  damage:"Villages flooded"},
+    {date:"11-08-2021",river:"Kosi",             loc:"Supaul, Bihar",              station:"Bhimnagar",        danger:62,  current:63,  forecast:65,  damage:"Heavy flood impact"},
+    {date:"Aug 2025",  river:"Multiple",         loc:"Punjab (All 23 districts)",  station:"—",               danger:"—", current:"—", forecast:"—", damage:"Worst in 40 years; 1,400+ villages"},
+    {date:"Jul 2024",  river:"N/A (Landslides)",loc:"Wayanad, Kerala",             station:"—",               danger:"—", current:"—", forecast:"—", damage:"420+ deaths; floods & landslides"},
+    {date:"Jul-Aug 2023",river:"Yamuna",         loc:"Delhi & North India",        station:"—",               danger:"—", current:"—", forecast:"—", damage:"422 deaths; Yamuna hit 208.66 m"},
+    {date:"Aug 2018",  river:"Periyar, Pamba",  loc:"Kerala",                      station:"—",               danger:"—", current:"—", forecast:"—", damage:"483 deaths; ₹30,000 Cr loss"},
+    {date:"Jun 2013",  river:"Alaknanda",        loc:"Uttarakhand",                station:"—",               danger:"—", current:"—", forecast:"—", damage:"6,054 deaths; 1 lakh stranded"},
+    {date:"Aug 2008",  river:"Kosi",             loc:"Supaul, Bihar",              station:"—",               danger:"—", current:"—", forecast:"—", damage:"1,399 deaths; 3M affected"},
+    {date:"Jul 2005",  river:"Mithi",            loc:"Mumbai",                     station:"—",               danger:"—", current:"—", forecast:"—", damage:"1,094 deaths; 944mm in 24hrs"},
+    {date:"Aug 1979",  river:"Machchhu",         loc:"Morbi, Gujarat",             station:"—",               danger:"—", current:"—", forecast:"—", damage:"~2,000 deaths; Dam failure"},
+  ];
+  document.getElementById("dbTable").innerHTML = data.map(d => `
+    <tr>
+      <td><strong>${d.date}</strong></td>
+      <td>${d.river}</td><td>${d.loc}</td>
+      <td style="font-size:0.78rem;color:var(--soft)">${d.station}</td>
+      <td>${d.danger}</td><td>${d.current}</td><td>${d.forecast}</td>
+      <td style="font-size:0.78rem">${d.damage}</td>
+    </tr>`).join("");
+}
+loadFloodDB();
 </script>
-
 </body>
-
 </html>
-
