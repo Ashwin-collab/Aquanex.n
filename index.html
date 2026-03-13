@@ -724,12 +724,10 @@ button { font-family: var(--font-body); cursor: pointer; transition: all 0.2s; }
       <div style="font-family:var(--font-head);font-size:1.3rem;color:var(--dark);margin-top:8px;margin-bottom:4px" id="floodStatusVal">—</div>
 
       <div class="level-rows">
-        <div class="lvl-row lv-normal"><div class="lvl-dot" style="background:#22C55E"></div>&lt;30 cm — Normal</div>
-        <div class="lvl-row lv-watch"><div class="lvl-dot" style="background:#3B82F6"></div>30–60 cm — Watch</div>
-        <div class="lvl-row lv-minor"><div class="lvl-dot" style="background:#14B8A6"></div>60–120 cm — Minor Flood</div>
-        <div class="lvl-row lv-moderate"><div class="lvl-dot" style="background:#EAB308"></div>120–180 cm — Moderate</div>
-        <div class="lvl-row lv-severe"><div class="lvl-dot" style="background:#F97316"></div>180–250 cm — Severe</div>
-        <div class="lvl-row lv-extreme"><div class="lvl-dot" style="background:#F43F5E"></div>&gt;250 cm — Extreme 🚨</div>
+        <div class="lvl-row lv-normal"><div class="lvl-dot" style="background:#22C55E"></div>&lt;150 cm — Normal ✅</div>
+        <div class="lvl-row lv-watch"><div class="lvl-dot" style="background:#3B82F6"></div>150–200 cm — Watch 🟢</div>
+        <div class="lvl-row lv-moderate"><div class="lvl-dot" style="background:#EAB308"></div>200–250 cm — Moderate 🟡</div>
+        <div class="lvl-row lv-extreme"><div class="lvl-dot" style="background:#F43F5E"></div>&gt;250 cm — Extreme ⚠️🚨</div>
       </div>
 
       <div class="cd-wrap">
@@ -975,7 +973,7 @@ function updateLiveUI(d) {
 
   // Water level color
   const wlEl = document.getElementById("waterLevelVal");
-  wlEl.style.color = wl >= 250 ? "#DC2626" : wl >= 120 ? "#D97706" : "#1D4ED8";
+  wlEl.style.color = wl >= 250 ? "#DC2626" : wl >= 200 ? "#D97706" : wl >= 150 ? "#1D4ED8" : "#1D4ED8";
 
   // Progress bars
   const wlPct = Math.min((wl / 300) * 100, 100);
@@ -986,12 +984,12 @@ function updateLiveUI(d) {
   // Tank + highlight active level row
   const fill = document.getElementById("waterFill");
   fill.style.height = wlPct + "%";
-  fill.className = "wbody" + (wl>=250 ? " wl-danger" : wl>=120 ? " wl-warn" : "");
+  fill.className = "wbody" + (wl>=250 ? " wl-danger" : wl>=200 ? " wl-warn" : "");
 
   // Highlight active level row
-  const lvlClasses = ['lv-normal','lv-watch','lv-minor','lv-moderate','lv-severe','lv-extreme'];
+  const lvlClasses = ['lv-normal','lv-watch','lv-moderate','lv-extreme'];
   document.querySelectorAll('.lvl-row').forEach(r => r.classList.remove('active-level'));
-  const lvlIdx = wl>=250?5 : wl>=180?4 : wl>=120?3 : wl>=60?2 : wl>=30?1 : 0;
+  const lvlIdx = wl>=250?3 : wl>=200?2 : wl>=150?1 : 0;
   document.querySelectorAll('.lvl-row')[lvlIdx]?.classList.add('active-level');
 
   updateAlert(wl);
@@ -1010,11 +1008,9 @@ function updateAlert(wl) {
   const l = document.getElementById("alertLevel");
   b.className = "alert-banner";
   const lv = wl>=250 ? ["extreme","fa-radiation-alt", "⚠️ EXTREME FLOOD — Evacuate Immediately!","EXTREME"]
-           : wl>=180 ? ["severe","fa-exclamation-triangle","🟠 Severe Flood Warning — High Alert!","SEVERE"]
-           : wl>=120 ? ["moderate","fa-exclamation-circle","🟡 Moderate Flood — Exercise Caution","MODERATE"]
-           : wl>=60  ? ["minor","fa-info-circle","🔵 Minor Flood Detected — Monitor Closely","MINOR"]
-           : wl>=30  ? ["watch","fa-eye","🟢 Flood Watch — Water Levels Rising","WATCH"]
-           :           ["normal","fa-check-circle","✅ All Clear — Water Levels Normal","NORMAL"];
+           : wl>=200 ? ["moderate","fa-exclamation-circle","🟡 Moderate Flood — Exercise Caution","MODERATE"]
+           : wl>=150 ? ["watch","fa-eye","🟢 Flood Watch — Water Levels Rising","WATCH"]
+           :           ["normal","fa-check-circle","✅ All Clear — Water Levels Normal","NORMAL"]
   b.classList.add(lv[0]);
   i.innerHTML = `<i class="fas ${lv[1]}" style="font-size:1.3rem"></i>`;
   t.textContent = lv[2];
