@@ -637,7 +637,7 @@ button { font-family: var(--font-body); cursor: pointer; transition: all 0.2s; }
       </div>
       <div class="mc-footer">
         <i class="fas fa-exclamation-triangle" style="color:#DC2626"></i>
-        Danger at <strong style="color:#DC2626">200 cm</strong>
+        Danger at <strong style="color:#DC2626">28 cm</strong>
       </div>
       <div class="pbar" style="margin-top:10px">
         <div class="pfill" id="wlBar" style="width:0%;background:linear-gradient(90deg,#22C55E,#3B82F6,#F97316,#EF4444)"></div>
@@ -705,10 +705,10 @@ button { font-family: var(--font-body); cursor: pointer; transition: all 0.2s; }
               <div class="wave1"></div>
               <div class="wave2"></div>
             </div>
-            <div class="d-line" style="bottom:66.6%"><span class="d-lbl">200cm ⚠</span></div>
+            <div class="d-line" style="bottom:93.3%"><span class="d-lbl">28cm ⚠</span></div>
             <div class="tscale">
-              <span class="tm">300</span><span class="tm">200</span>
-              <span class="tm">100</span><span class="tm">0</span>
+              <span class="tm">30</span><span class="tm">28</span>
+              <span class="tm">10</span><span class="tm">0</span>
             </div>
           </div>
         </div>
@@ -724,10 +724,10 @@ button { font-family: var(--font-body); cursor: pointer; transition: all 0.2s; }
       <div style="font-family:var(--font-head);font-size:1.3rem;color:var(--dark);margin-top:8px;margin-bottom:4px" id="floodStatusVal">—</div>
 
       <div class="level-rows">
-        <div class="lvl-row lv-normal"><div class="lvl-dot" style="background:#22C55E"></div>&lt;100 cm — Normal ✅</div>
-        <div class="lvl-row lv-watch"><div class="lvl-dot" style="background:#3B82F6"></div>100–150 cm — Watch 🟢</div>
-        <div class="lvl-row lv-moderate"><div class="lvl-dot" style="background:#EAB308"></div>150–200 cm — Moderate 🟡</div>
-        <div class="lvl-row lv-extreme"><div class="lvl-dot" style="background:#F43F5E"></div>&gt;200 cm — Extreme ⚠️🚨</div>
+        <div class="lvl-row lv-normal"><div class="lvl-dot" style="background:#22C55E"></div>&lt;10 cm — Normal ✅</div>
+        <div class="lvl-row lv-watch"><div class="lvl-dot" style="background:#3B82F6"></div>10–18 cm — Watch 🟢</div>
+        <div class="lvl-row lv-moderate"><div class="lvl-dot" style="background:#EAB308"></div>18–28 cm — Moderate 🟡</div>
+        <div class="lvl-row lv-extreme"><div class="lvl-dot" style="background:#F43F5E"></div>&gt;28 cm — Extreme ⚠️🚨</div>
       </div>
 
       <div class="cd-wrap">
@@ -973,10 +973,10 @@ function updateLiveUI(d) {
 
   // Water level color
   const wlEl = document.getElementById("waterLevelVal");
-  wlEl.style.color = wl >= 200 ? "#DC2626" : wl >= 150 ? "#D97706" : wl >= 100 ? "#1D4ED8" : "#1D4ED8";
+  wlEl.style.color = wl >= 28 ? "#DC2626" : wl >= 18 ? "#D97706" : wl >= 10 ? "#1D4ED8" : "#1D4ED8";
 
   // Progress bars
-  const wlPct = Math.min((wl / 300) * 100, 100);
+  const wlPct = Math.min((wl / 30) * 100, 100);
   document.getElementById("wlBar").style.width  = wlPct + "%";
   document.getElementById("humBar").style.width = Math.min(hum, 100) + "%";
   document.getElementById("tankPct").textContent = wlPct.toFixed(0) + "% full";
@@ -984,18 +984,18 @@ function updateLiveUI(d) {
   // Tank + highlight active level row
   const fill = document.getElementById("waterFill");
   fill.style.height = wlPct + "%";
-  fill.className = "wbody" + (wl>=200 ? " wl-danger" : wl>=150 ? " wl-warn" : "");
+  fill.className = "wbody" + (wl>=28 ? " wl-danger" : wl>=18 ? " wl-warn" : "");
 
   // Highlight active level row
   const lvlClasses = ['lv-normal','lv-watch','lv-moderate','lv-extreme'];
   document.querySelectorAll('.lvl-row').forEach(r => r.classList.remove('active-level'));
-  const lvlIdx = wl>=200?3 : wl>=150?2 : wl>=100?1 : 0;
+  const lvlIdx = wl>=28?3 : wl>=18?2 : wl>=10?1 : 0;
   document.querySelectorAll('.lvl-row')[lvlIdx]?.classList.add('active-level');
 
   updateAlert(wl);
   pushChart(wl, temp, hum);
 
-  if (wl >= 200) {
+  if (wl >= 28) {
     document.getElementById("floodPopup").classList.add("show");
     setTimeout(() => document.getElementById("floodPopup").classList.remove("show"), 8000);
   }
@@ -1007,9 +1007,9 @@ function updateAlert(wl) {
   const t = document.getElementById("alertText");
   const l = document.getElementById("alertLevel");
   b.className = "alert-banner";
-  const lv = wl>=200 ? ["extreme","fa-radiation-alt", "⚠️ EXTREME FLOOD — Evacuate Immediately!","EXTREME"]
-           : wl>=150 ? ["moderate","fa-exclamation-circle","🟡 Moderate Flood — Exercise Caution","MODERATE"]
-           : wl>=100 ? ["watch","fa-eye","🟢 Flood Watch — Water Levels Rising","WATCH"]
+  const lv = wl>=28 ? ["extreme","fa-radiation-alt", "⚠️ EXTREME FLOOD — Evacuate Immediately!","EXTREME"]
+           : wl>=18 ? ["moderate","fa-exclamation-circle","🟡 Moderate Flood — Exercise Caution","MODERATE"]
+           : wl>=10 ? ["watch","fa-eye","🟢 Flood Watch — Water Levels Rising","WATCH"]
            :           ["normal","fa-check-circle","✅ All Clear — Water Levels Normal","NORMAL"]
   b.classList.add(lv[0]);
   i.innerHTML = `<i class="fas ${lv[1]}" style="font-size:1.3rem"></i>`;
